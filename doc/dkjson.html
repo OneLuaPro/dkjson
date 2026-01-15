@@ -1,0 +1,220 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<!-- saved from url=(0041)https://dkolf.de/dkjson-lua/documentation -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<title>Documentation - dkjson - JSON Module for Lua</title>
+		<link rel="stylesheet" type="text/css" href="./dkjson_files/style.css">
+		<meta name="description" content="Documentation for dkjson, a free JSON module written in pure Lua.">
+		
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+	</head>
+
+	<body>
+
+<h1>Documentation – dkjson
+<a href="https://dkolf.de/" class="homelink">(dkolf.de)</a></h1>
+
+<div class="textcolumn">
+
+<h2>Introduction</h2>
+
+<p>This is the documentation for <a href="https://dkolf.de/dkjson-lua/">dkjson</a>, a JSON module written in Lua (5.1 to 5.4).</p>
+
+<hr>
+
+<p><em>Version 2.8</em></p>
+
+<p>In the default configuration this module writes no global values, not even
+the module table. Import it using</p>
+
+<pre><code>json = require ("dkjson")
+</code></pre>
+
+<p>In environments where <code>require</code> or a similiar function are not available
+and you cannot receive the return value of the module, you can set the
+option <code>register_global_module_table</code> to <code>true</code>.  The module table will
+then be saved in the global variable with the name given by the option
+<code>global_module_name</code>.</p>
+
+<p>Exported functions and values:</p>
+
+<h2><code>json.encode (object [, state])</code></h2>
+<p>Create a string representing the object. <code>Object</code> can be a table,
+a string, a number, a boolean, <code>nil</code>, <code>json.null</code> or any object with
+a function <code>__tojson</code> in its metatable. A table can only use strings
+and numbers as keys and its values have to be valid objects as
+well. It raises an error for any invalid data types or reference
+cycles.</p>
+
+<p><code>state</code> is an optional table with the following fields:</p>
+
+<ul>
+<li><code>indent</code> <br>
+When <code>indent</code> (a boolean) is set, the created string will contain
+newlines and indentations. Otherwise it will be one long line.</li>
+<li><code>keyorder</code> <br>
+<code>keyorder</code> is an array to specify the ordering of keys in the
+encoded output. If an object has keys which are not in this array
+they are written after the sorted keys.</li>
+<li><code>level</code> <br>
+This is the initial level of indentation used when <code>indent</code> is
+set. For each level two spaces are added. When absent it is set
+to 0.</li>
+<li><code>buffer</code> <br>
+<code>buffer</code> is an array to store the strings for the result so they
+can be concatenated at once. When it isn't given, the encode
+function will create it temporary and will return the
+concatenated result.</li>
+<li><code>bufferlen</code> <br>
+When <code>bufferlen</code> is set, it has to be the index of the last
+element of <code>buffer</code>.</li>
+<li><code>tables</code> <br>
+<code>tables</code> is a set to detect reference cycles. It is created
+temporary when absent. Every table that is currently processed
+is used as key, the value is <code>true</code>.</li>
+<li><code>exception</code> <br>
+When <code>exception</code> is given, it will be called whenever the encoder
+cannot encode a given value. <br>
+The parameters are <code>reason</code>, <code>value</code>, <code>state</code> and <code>defaultmessage</code>.
+<code>reason</code> is either <code>"reference cycle"</code>, <code>"custom encoder failed"</code> or
+<code>"unsupported type"</code>. <code>value</code> is the original value that caused the
+exception, <code>state</code> is this state table, <code>defaultmessage</code> is the message
+of the error that would usually be raised. <br>
+You can either return <code>true</code> and add directly to the buffer or you can
+return the string directly. To keep raising an error return <code>nil</code> and
+the desired error message. <br>
+An example implementation for an exception function is given in
+<code>json.encodeexception</code>.</li>
+</ul>
+
+<p>When <code>state.buffer</code> was set, the return value will be <code>true</code> on
+success. Without <code>state.buffer</code> the return value will be a string.</p>
+
+<h2><code>json.decode (string [, position [, null]])</code></h2>
+<p>Decode <code>string</code> starting at <code>position</code> or at 1 if <code>position</code> was
+omitted.</p>
+
+<p><code>null</code> is an optional value to be returned for null values. The
+default is <code>nil</code>, but you could set it to <code>json.null</code> or any other
+value.</p>
+
+<p>The return values are the object or <code>nil</code>, the position of the next
+character that doesn't belong to the object, and in case of errors
+an error message.</p>
+
+<p>Two metatables are created. Every array or object that is decoded gets
+a metatable with the <code>__jsontype</code> field set to either <code>array</code> or
+<code>object</code>. If you want to provide your own metatables use the syntax</p>
+
+<pre><code>json.decode (string, position, null, objectmeta, arraymeta)
+</code></pre>
+
+<p>To prevent the assigning of metatables pass <code>nil</code>:</p>
+
+<pre><code>json.decode (string, position, null, nil)
+</code></pre>
+
+<h2><code>&lt;metatable&gt;.__jsonorder</code></h2>
+<p><code>__jsonorder</code> can overwrite the <code>keyorder</code> for a specific table.</p>
+
+<h2><code>&lt;metatable&gt;.__jsontype</code></h2>
+<p><code>__jsontype</code> can be either <code>"array"</code> or <code>"object"</code>. This value is only
+checked for empty tables. (The default for empty tables is <code>"array"</code>).</p>
+
+<h2><code>&lt;metatable&gt;.__tojson (self, state)</code></h2>
+<p>You can provide your own <code>__tojson</code> function in a metatable. In this
+function you can either add directly to the buffer and return true,
+or you can return a string. On errors nil and a message should be
+returned.</p>
+
+<h2><code>json.null</code></h2>
+<p>You can use this value for setting explicit <code>null</code> values.</p>
+
+<h2><code>json.version</code></h2>
+<p>Set to <code>"dkjson 2.8"</code>.</p>
+
+<h2><code>json.quotestring (string)</code></h2>
+<p>Quote a UTF-8 string and escape critical characters using JSON
+escape sequences. This function is only necessary when you build
+your own <code>__tojson</code> functions.</p>
+
+<h2><code>json.addnewline (state)</code></h2>
+<p>When <code>state.indent</code> is set, add a newline to <code>state.buffer</code> and spaces
+according to <code>state.level</code>.</p>
+
+<h2><code>json.encodeexception (reason, value, state, defaultmessage)</code></h2>
+<p>This function can be used as value to the <code>exception</code> option. Instead of
+raising an error this function encodes the error message as a string. This
+can help to debug malformed input data.</p>
+
+<pre><code>x = json.encode(value, { exception = json.encodeexception })
+</code></pre>
+
+<h2>LPeg support</h2>
+<p>When the local configuration variable <code>always_use_lpeg</code> is set,
+this module tries to load LPeg to replace the <code>decode</code> function. The
+speed increase is significant. You can get the LPeg module at
+  <a href="http://www.inf.puc-rio.br/~roberto/lpeg/">http://www.inf.puc-rio.br/~roberto/lpeg/</a>.</p>
+
+<p>Without changing the module configuration you can get LPeg support by
+calling the function <code>use_lpeg</code>:</p>
+
+<h3><code>json.use_lpeg ()</code></h3>
+<p>Require the LPeg module and return a copy of the module table where the
+<code>decode</code> function was replaced by a version that uses LPeg:</p>
+
+<pre><code>json = require "dkjson".use_lpeg()
+</code></pre>
+
+<p>Without the configuration to always use LPEG the original module table is
+unchanged and still available by calls to</p>
+
+<pre><code>json = require "dkjson"
+</code></pre>
+
+<h3><code>json.using_lpeg</code></h3>
+<p>This variable is set to <code>true</code> in the copy of the module table that uses
+LPeg support.</p>
+
+<hr>
+
+<h2>Contact</h2>
+<p>You can contact the author by sending an e-mail to 'david' at the
+domain 'dkolf.de'.</p>
+
+<hr>
+
+<p><em>Copyright (C) 2010-2024 David Heiko Kolf</em></p>
+
+<p>Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:</p>
+
+<p>The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.</p>
+
+<p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.</p>
+
+</div>
+
+		<div class="navbottom">
+			<div class="textcolumn" lang="en">
+				<p>
+				<a href="https://dkolf.de/">dkolf.de</a>
+				<a href="https://dkolf.de/contact">contact</a>
+			</p></div>
+		</div>
+
+	
+
+</body></html>
